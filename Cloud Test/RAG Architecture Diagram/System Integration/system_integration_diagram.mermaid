@@ -1,0 +1,155 @@
+graph TB
+    subgraph "Users & Clients"
+        Employee["Employee<br/>(500 users)"]
+        WebBrowser["Web Browser<br/>(Chrome, Safari, Edge)"]
+        Mobile["Mobile Device<br/>(iOS, Android)"]
+    end
+
+    subgraph "Edge & CDN"
+        CloudFront["CloudFront CDN<br/>✓ Global distribution<br/>✓ HTTPS only<br/>✓ HSTS enabled"]
+        Route53["Route53<br/>✓ DNS routing<br/>✓ Health checks<br/>✓ Failover"]
+    end
+
+    subgraph "Frontend Applications"
+        S3Web["S3 + React Web App<br/>✓ Static hosting<br/>✓ Serverless"]
+        ReactNative["React Native App<br/>✓ iOS/Android<br/>✓ Offline support"]
+    end
+
+    subgraph "API Layer"
+        APIGateway["API Gateway<br/>✓ REST APIs<br/>✓ WebSocket<br/>✓ Rate limiting<br/>✓ Request validation"]
+        WAF["AWS WAF<br/>✓ DDoS protection<br/>✓ SQL injection<br/>✓ XSS protection"]
+    end
+
+    subgraph "Authentication & Authorization"
+        Cognito["Cognito User Pool<br/>✓ SAML 2.0<br/>✓ MFA required<br/>✓ JWT tokens"]
+        LambdaAuth["Lambda Authorizer<br/>✓ JWT validation<br/>✓ Permission check"]
+        IDP["Identity Provider<br/>(Okta/Azure AD)"]
+    end
+
+    subgraph "Core Application Logic"
+        QueryLambda["Query Orchestrator<br/>✓ Parse query<br/>✓ Check cache<br/>✓ Coordinate pipeline<br/>✓ Stream response"]
+        SearchLambda["Semantic Search<br/>✓ Generate embedding<br/>✓ Hybrid search<br/>✓ Re-rank results"]
+        GenLambda["Response Generator<br/>✓ Format context<br/>✓ Call LLM<br/>✓ Extract citations"]
+        DocLambda["Document Processor<br/>✓ Extract text<br/>✓ Chunk content<br/>✓ Generate embeddings"]
+    end
+
+    subgraph "AI & ML Services"
+        Bedrock["Amazon Bedrock<br/>Claude 3.5 Sonnet<br/>✓ 200K context<br/>✓ Streaming"]
+        Mixtral["ECS Fargate<br/>Mixtral 8x7B<br/>✓ Cost fallback<br/>✓ 32K context"]
+        OpenAIEmbed["OpenAI API<br/>text-embedding-3-small<br/>✓ 1536 dimensions"]
+        Textract["AWS Textract<br/>✓ OCR for PDFs<br/>✓ Table extraction"]
+    end
+
+    subgraph "Data Storage Layer"
+        S3["S3 Bucket<br/>✓ Documents<br/>✓ Versioning<br/>✓ Encryption"]
+        RDS["RDS PostgreSQL<br/>✓ Metadata<br/>✓ Permissions<br/>✓ Multi-AZ"]
+        DynamoDB["DynamoDB<br/>✓ Audit logs<br/>✓ User sessions<br/>✓ On-demand"]
+        Pinecone["Pinecone Serverless<br/>✓ Vector search<br/>✓ 100M vectors<br/>✓ Auto-scale"]
+        OpenSearch["OpenSearch Serverless<br/>✓ Keyword search<br/>✓ BM25 algorithm<br/>✓ Filters"]
+        Cache["ElastiCache Redis<br/>✓ Query cache<br/>✓ 40% hit rate<br/>✓ TTL policies"]
+    end
+
+    subgraph "Event Processing"
+        SQS["SQS Queue<br/>✓ Document processing<br/>✓ Dead letter queue<br/>✓ Retry logic"]
+        EventBridge["EventBridge<br/>✓ Scheduled tasks<br/>✓ Event routing"]
+    end
+
+    subgraph "Monitoring & Observability"
+        CloudWatch["CloudWatch<br/>✓ Metrics<br/>✓ Logs<br/>✓ Alarms"]
+        XRay["X-Ray<br/>✓ Distributed tracing<br/>✓ Performance insights"]
+        CloudTrail["CloudTrail<br/>✓ API audit<br/>✓ Compliance<br/>✓ Security"]
+    end
+
+    subgraph "Security & Secrets"
+        KMS["AWS KMS<br/>✓ Encryption keys<br/>✓ Auto-rotation"]
+        Secrets["Secrets Manager<br/>✓ API keys<br/>✓ DB credentials"]
+        IAM["IAM Roles<br/>✓ Least privilege<br/>✓ Service permissions"]
+    end
+
+    subgraph "Networking"
+        VPC["VPC<br/>✓ Private subnets<br/>✓ Multi-AZ<br/>✓ NAT gateway"]
+        SG["Security Groups<br/>✓ Stateful firewall"]
+        VPCEndpoint["VPC Endpoints<br/>✓ Private AWS services"]
+    end
+
+    %% User connections
+    Employee --> WebBrowser
+    Employee --> Mobile
+    WebBrowser --> CloudFront
+    Mobile --> Route53
+    
+    %% Frontend
+    CloudFront --> S3Web
+    Route53 --> ReactNative
+    S3Web --> APIGateway
+    ReactNative --> APIGateway
+    
+    %% API & Auth
+    APIGateway --> WAF
+    WAF --> Cognito
+    Cognito <--> IDP
+    Cognito --> LambdaAuth
+    
+    %% Core logic flow
+    LambdaAuth --> QueryLambda
+    QueryLambda --> Cache
+    QueryLambda --> SearchLambda
+    SearchLambda --> GenLambda
+    
+    %% AI services
+    SearchLambda --> OpenAIEmbed
+    GenLambda --> Bedrock
+    GenLambda -.->|Fallback| Mixtral
+    DocLambda --> Textract
+    DocLambda --> OpenAIEmbed
+    
+    %% Data storage
+    QueryLambda --> DynamoDB
+    SearchLambda --> Pinecone
+    SearchLambda --> OpenSearch
+    SearchLambda --> RDS
+    DocLambda --> S3
+    DocLambda --> Pinecone
+    DocLambda --> OpenSearch
+    DocLambda --> RDS
+    
+    %% Event processing
+    S3 --> SQS
+    SQS --> DocLambda
+    EventBridge --> DocLambda
+    
+    %% Monitoring
+    QueryLambda --> CloudWatch
+    SearchLambda --> CloudWatch
+    GenLambda --> CloudWatch
+    DocLambda --> CloudWatch
+    APIGateway --> XRay
+    QueryLambda --> XRay
+    APIGateway --> CloudTrail
+    
+    %% Security
+    KMS --> S3
+    KMS --> RDS
+    Secrets --> QueryLambda
+    Secrets --> DocLambda
+    IAM --> QueryLambda
+    IAM --> SearchLambda
+    
+    %% Network
+    VPC --> QueryLambda
+    VPC --> SearchLambda
+    VPC --> GenLambda
+    VPC --> DocLambda
+    VPC --> RDS
+    VPC --> Cache
+    SG --> VPC
+    VPCEndpoint --> VPC
+
+    style Employee fill:#e1f5ff
+    style Bedrock fill:#ff6b6b
+    style Pinecone fill:#ff6b6b
+    style RDS fill:#ffd93d
+    style S3 fill:#ffd93d
+    style CloudWatch fill:#95e1d3
+    style Cognito fill:#a8dadc
+    style VPC fill:#f0f0f0

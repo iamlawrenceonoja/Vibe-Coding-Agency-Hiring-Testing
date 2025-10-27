@@ -1,0 +1,81 @@
+graph TB
+    subgraph "Monthly Cost Breakdown: $7,850"
+        Total["Total: $7,850/month<br/>Within $8,000 budget"]
+        
+        Compute["Compute: $1,110<br/>(14%)"]
+        Storage["Storage: $167<br/>(2%)"]
+        VectorSearch["Vector & Search: $3,150<br/>(40%)"]
+        AI["AI Services: $2,750<br/>(35%)"]
+        Network["Network: $92<br/>(1%)"]
+        Security["Security: $181<br/>(2%)"]
+        Buffer["Buffer: $400<br/>(5%)"]
+    end
+
+    subgraph "Compute Details"
+        Lambda1["Lambda Query<br/>$450"]
+        Lambda2["Lambda Ingestion<br/>$180"]
+        Fargate["ECS Fargate Mixtral<br/>$480 (Spot 70% off)"]
+    end
+
+    subgraph "Vector & Search Details"
+        Pine["Pinecone Serverless<br/>$2,800<br/>100M vectors, 500K queries"]
+        Open["OpenSearch Serverless<br/>$350<br/>2-4 OCUs average"]
+    end
+
+    subgraph "AI Services Details"
+        Bed["Bedrock Claude 3.5<br/>$2,500<br/>10M input, 2M output tokens"]
+        Emb["OpenAI Embeddings<br/>$100<br/>50M tokens"]
+        Text["AWS Textract<br/>$150<br/>10K pages"]
+    end
+
+    subgraph "Cost Optimization Strategies"
+        Opt1["Caching Strategy<br/>💰 Saves $1,000/mo<br/>40% cache hit rate"]
+        Opt2["LLM Routing<br/>💰 Saves $900/mo<br/>40% to Mixtral"]
+        Opt3["Batch Processing<br/>💰 Saves $450/mo<br/>90% fewer API calls"]
+        Opt4["Reserved Instances<br/>💰 Saves $95/mo<br/>RDS 1-year commitment"]
+        Opt5["Spot Instances<br/>💰 Saves $1,120/mo<br/>70% discount on Fargate"]
+    end
+
+    subgraph "Cost Scaling Projections"
+        Y1["Year 1<br/>100K docs, 500 users<br/>$7,850/month"]
+        Y2["Year 2<br/>250K docs, 750 users<br/>$9,350/month<br/>(+19%)"]
+        Y3["Year 3<br/>500K docs, 1000 users<br/>$11,350/month<br/>(+45%)"]
+        Y5["Year 5<br/>1M docs, 1500 users<br/>$15,850/month<br/>(+102%)"]
+    end
+
+    Total --> Compute
+    Total --> Storage
+    Total --> VectorSearch
+    Total --> AI
+    Total --> Network
+    Total --> Security
+    Total --> Buffer
+
+    Compute --> Lambda1
+    Compute --> Lambda2
+    Compute --> Fargate
+
+    VectorSearch --> Pine
+    VectorSearch --> Open
+
+    AI --> Bed
+    AI --> Emb
+    AI --> Text
+
+    Y1 --> Y2
+    Y2 --> Y3
+    Y3 --> Y5
+
+    style Total fill:#4CAF50,color:#fff
+    style VectorSearch fill:#FF9800
+    style AI fill:#2196F3
+    style Compute fill:#9C27B0
+    style Opt1 fill:#66BB6A
+    style Opt2 fill:#66BB6A
+    style Opt3 fill:#66BB6A
+    style Opt4 fill:#66BB6A
+    style Opt5 fill:#66BB6A
+    style Y1 fill:#E3F2FD
+    style Y2 fill:#BBDEFB
+    style Y3 fill:#90CAF9
+    style Y5 fill:#64B5F6

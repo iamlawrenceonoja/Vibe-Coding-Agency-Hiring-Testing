@@ -1,0 +1,95 @@
+sequenceDiagram
+    participant User
+    participant WebApp
+    participant APIGateway
+    participant Cognito
+    participant QueryLambda
+    participant Cache
+    participant SearchLambda
+    participant Pinecone
+    participant OpenSearch
+    participant RDS
+    participant Claude
+    participant DynamoDB
+
+    Note over User,DynamoDB: User Query Flow
+
+    User->>WebApp: Ask question
+    WebApp->>APIGateway: POST /query + JWT
+    APIGateway->>Cognito: Validate JWT
+    Cognito-->>APIGateway: User context (department, clearance)
+    
+    APIGateway->>QueryLambda: Invoke with query + context
+    
+    QueryLambda->>Cache: Check cache (query hash)
+    alt Cache Hit
+        Cache-->>QueryLambda: Cached response
+        QueryLambda-->>WebApp: Return cached result
+    else Cache Miss
+        QueryLambda->>SearchLambda: Trigger semantic search
+        
+        SearchLambda->>SearchLambda: Generate query embedding
+        
+        par Parallel Search
+            SearchLambda->>Pinecone: Vector search (top-K=20)
+            Pinecone-->>SearchLambda: 20 similar chunks
+        and
+            SearchLambda->>OpenSearch: Keyword search (BM25)
+            OpenSearch-->>SearchLambda: 20 matching docs
+        end
+        
+        SearchLambda->>RDS: Fetch permissions for docs
+        RDS-->>SearchLambda: Permission metadata
+        
+        SearchLambda->>SearchLambda: Filter by user permissions
+        SearchLambda->>SearchLambda: Re-rank with cross-encoder
+        SearchLambda-->>QueryLambda: Top 5 contexts + metadata
+        
+        QueryLambda->>QueryLambda: Format prompt with contexts
+        QueryLambda->>Claude: Generate response
+        Claude-->>QueryLambda: Streaming response + citations
+        
+        QueryLambda->>Cache: Store response (TTL=1hr)
+        QueryLambda->>DynamoDB: Log audit trail
+        
+        QueryLambda-->>WebApp: Stream response to user
+    end
+    
+    WebApp-->>User: Display answer + citations
+
+    Note over User,DynamoDB: Document Ingestion Flow
+
+    User->>WebApp: Upload document
+    WebApp->>APIGateway: POST /documents + file
+    APIGateway->>Cognito: Validate JWT
+    Cognito-->>APIGateway: User authorized
+    
+    APIGateway->>S3: Upload to S3 bucket
+    S3-->>APIGateway: Upload complete
+    APIGateway-->>WebApp: Document uploaded
+    WebApp-->>User: Success message
+    
+    Note over S3,DynamoDB: Async Processing
+    
+    S3->>SQS: S3 event notification
+    SQS->>DocProcessor: Trigger Lambda
+    
+    DocProcessor->>S3: Download document
+    DocProcessor->>DocProcessor: Extract text (Textract/Parser)
+    DocProcessor->>DocProcessor: Chunk text (1000 tokens, 200 overlap)
+    DocProcessor->>DocProcessor: Generate embeddings (batch)
+    
+    par Store in Multiple Locations
+        DocProcessor->>Pinecone: Upsert vectors + metadata
+        Pinecone-->>DocProcessor: Success
+    and
+        DocProcessor->>OpenSearch: Index for keyword search
+        OpenSearch-->>DocProcessor: Success
+    and
+        DocProcessor->>RDS: Store metadata + permissions
+        RDS-->>DocProcessor: Success
+    end
+    
+    DocProcessor->>DynamoDB: Log processing complete
+    DocProcessor->>WebApp: Notify user (WebSocket)
+    WebApp-->>User: Document ready for search

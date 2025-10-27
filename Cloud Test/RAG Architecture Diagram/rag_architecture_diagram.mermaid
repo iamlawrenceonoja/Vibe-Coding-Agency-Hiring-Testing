@@ -1,0 +1,92 @@
+graph TB
+    subgraph "User Interface Layer"
+        WebApp["Web App<br/>(React + CloudFront)"]
+        MobileApp["Mobile App<br/>(React Native)"]
+    end
+
+    subgraph "API Gateway & Auth Layer"
+        APIGateway["API Gateway<br/>(REST + WebSocket)"]
+        Cognito["AWS Cognito<br/>(SAML 2.0 / MFA)"]
+        WAF["AWS WAF<br/>(Rate Limiting + DDoS)"]
+    end
+
+    subgraph "Orchestration Layer"
+        QueryOrchestrator["Lambda: Query Orchestrator<br/>- Parse query<br/>- Check permissions<br/>- Coordinate pipeline"]
+        Cache["ElastiCache Redis<br/>(Query Cache)"]
+        AuditDB["DynamoDB<br/>(Audit Logs)"]
+    end
+
+    subgraph "Retrieval Layer"
+        SemanticSearch["Lambda: Semantic Search<br/>- Generate embedding<br/>- Hybrid search<br/>- Filter by permissions<br/>- Re-rank results"]
+        Pinecone["Pinecone Serverless<br/>(Vector Search)"]
+        OpenSearch["OpenSearch<br/>(Keyword Search)"]
+        RDS["RDS PostgreSQL<br/>(Metadata + Permissions)"]
+    end
+
+    subgraph "Generation Layer"
+        ResponseGen["Lambda: Response Generator<br/>- Format context<br/>- Call LLM<br/>- Extract citations"]
+        Bedrock["Amazon Bedrock<br/>(Claude 3.5 Sonnet)"]
+        Mixtral["ECS Fargate<br/>(Mixtral 8x7B Fallback)"]
+    end
+
+    subgraph "Ingestion Pipeline"
+        S3["S3 Bucket<br/>(Document Store)"]
+        SQS["SQS Queue<br/>(Processing Queue)"]
+        DocProcessor["Lambda: Document Processor<br/>- Extract text (Textract)<br/>- Chunk (1000 tokens)<br/>- Generate embeddings<br/>- Store vectors"]
+    end
+
+    subgraph "Monitoring"
+        CloudWatch["CloudWatch<br/>(Metrics + Logs)"]
+        XRay["X-Ray<br/>(Distributed Tracing)"]
+    end
+
+    %% User flow
+    WebApp --> WAF
+    MobileApp --> WAF
+    WAF --> APIGateway
+    APIGateway --> Cognito
+    Cognito --> QueryOrchestrator
+
+    %% Query flow
+    QueryOrchestrator --> Cache
+    Cache -.->|Cache miss| SemanticSearch
+    QueryOrchestrator --> AuditDB
+    
+    SemanticSearch --> Pinecone
+    SemanticSearch --> OpenSearch
+    SemanticSearch --> RDS
+    
+    SemanticSearch --> ResponseGen
+    ResponseGen --> Bedrock
+    ResponseGen -.->|Fallback| Mixtral
+    
+    ResponseGen --> QueryOrchestrator
+    QueryOrchestrator --> APIGateway
+
+    %% Ingestion flow
+    S3 -->|S3 Event| SQS
+    SQS --> DocProcessor
+    DocProcessor --> Pinecone
+    DocProcessor --> OpenSearch
+    DocProcessor --> RDS
+
+    %% Monitoring
+    QueryOrchestrator --> CloudWatch
+    SemanticSearch --> CloudWatch
+    ResponseGen --> CloudWatch
+    DocProcessor --> CloudWatch
+    
+    APIGateway --> XRay
+    QueryOrchestrator --> XRay
+    SemanticSearch --> XRay
+
+    style WebApp fill:#e1f5ff
+    style MobileApp fill:#e1f5ff
+    style Pinecone fill:#ffe1e1
+    style Bedrock fill:#ffe1e1
+    style RDS fill:#fff4e1
+    style S3 fill:#fff4e1
+    style QueryOrchestrator fill:#e1ffe1
+    style SemanticSearch fill:#e1ffe1
+    style ResponseGen fill:#e1ffe1
+    style DocProcessor fill:#e1ffe1
